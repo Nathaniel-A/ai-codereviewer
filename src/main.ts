@@ -75,6 +75,7 @@ async function analyzeCode(
     if (file.to === "/dev/null") continue; // Ignore deleted files
     for (const chunk of file.chunks) {
       const prompt = createPrompt(file, chunk, prDetails);
+      await delay(30000);
       const aiResponse = await getAIResponse(prompt);
       if (aiResponse) {
         const newComments = createComment(file, chunk, aiResponse);
@@ -82,7 +83,6 @@ async function analyzeCode(
           comments.push(...newComments);
         }
       }
-      await delay(20000);
     }
   }
   return comments;
