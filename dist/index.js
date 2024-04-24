@@ -73,11 +73,6 @@ function getPRDetails() {
         };
     });
 }
-function delay(milliseconds: number) {
-  return new Promise<void>((resolve) => {
-      setTimeout(resolve, milliseconds);
-  });
-}
 function getDiff(owner, repo, pull_number) {
     return __awaiter(this, void 0, void 0, function* () {
         const response = yield octokit.pulls.get({
@@ -148,6 +143,9 @@ ${chunk.changes
   
   return promptChunks;
 }
+function delayedFunction() {
+    console.log("Delayed function executed after 30 seconds");
+}
 function getAIResponse(prompt) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
@@ -171,7 +169,7 @@ function getAIResponse(prompt) {
                     ] }));
                 const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
                 return JSON.parse(res).reviews;
-                await delay(30000);
+                setTimeout(delayedFunction, 30000);
 	    }
         }
         catch (error) {
