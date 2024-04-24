@@ -159,6 +159,7 @@ function getAIResponse(prompt) {
         };
         try {
 	    console.log("Going to publish data to OPENAI");
+	    console.log(chunk);
 	    for (const chunk of prompt) {
                 const response = yield openai.chat.completions.create(Object.assign(Object.assign(Object.assign({}, queryConfig), (OPENAI_API_MODEL === "gpt-4-1106-preview"
                     ? { response_format: { type: "json_object" } }
