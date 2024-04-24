@@ -73,6 +73,11 @@ function getPRDetails() {
         };
     });
 }
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+      setTimeout(resolve, milliseconds);
+  });
+}
 function getDiff(owner, repo, pull_number) {
     return __awaiter(this, void 0, void 0, function* () {
         const response = yield octokit.pulls.get({
@@ -105,17 +110,18 @@ function analyzeCode(parsedDiff, prDetails) {
         return comments;
     });
 }
-function createPrompt(file, chunk, prDetails) {
-    return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>"}]}
+function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string[] {
+  const MAX_LENGTH = 4000;
+  const prompt = `Your task is to review pull requests. Instructions:
+- Provide the response in the following JSON format: {"reviews": [{"lineNumber": <line_number>, "reviewComment": "<review comment>"}]}
 - Do not give positive comments or compliments.
-- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
+- Provide comments and suggestions ONLY if there is something to improve; otherwise, "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
-- Use the given description only for the overall context and only comment the code.
+- Use the given description only for the overall context and only comment on the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
 
 Review the following code diff in the file "${file.to}" and take the pull request title and description into account when writing the response.
-  
+
 Pull request title: ${prDetails.title}
 Pull request description:
 
@@ -128,11 +134,19 @@ Git diff to review:
 \`\`\`diff
 ${chunk.content}
 ${chunk.changes
-        // @ts-expect-error - ln and ln2 exists where needed
-        .map((c) => `${c.ln ? c.ln : c.ln2} ${c.content}`)
-        .join("\n")}
+  // @ts-expect-error - ln and ln2 exist where needed
+  .map((c) => `${c.ln ? c.ln : c.ln2} ${c.content}`)
+  .join("\n")}
 \`\`\`
 `;
+
+  // Split the prompt into chunks of 4000 characters
+  const promptChunks: string[] = [];
+  for (let i = 0; i < prompt.length; i += MAX_LENGTH) {
+    promptChunks.push(prompt.slice(i, i + MAX_LENGTH));
+  }
+  
+  return promptChunks;
 }
 function getAIResponse(prompt) {
     var _a, _b;
@@ -146,16 +160,19 @@ function getAIResponse(prompt) {
             presence_penalty: 0,
         };
         try {
-            const response = yield openai.chat.completions.create(Object.assign(Object.assign(Object.assign({}, queryConfig), (OPENAI_API_MODEL === "gpt-4-1106-preview"
-                ? { response_format: { type: "json_object" } }
-                : {})), { messages: [
-                    {
-                        role: "system",
-                        content: prompt,
-                    },
-                ] }));
-            const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
-            return JSON.parse(res).reviews;
+	    for (const chunk of prompt) {
+                const response = yield openai.chat.completions.create(Object.assign(Object.assign(Object.assign({}, queryConfig), (OPENAI_API_MODEL === "gpt-4-1106-preview"
+                    ? { response_format: { type: "json_object" } }
+                    : {})), { messages: [
+                        {
+                            role: "system",
+                            content: chunk,
+                        },
+                    ] }));
+                const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
+                return JSON.parse(res).reviews;
+                await delay(30000);
+	    }
         }
         catch (error) {
             console.error("Error:", error);
