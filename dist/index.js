@@ -105,7 +105,7 @@ function analyzeCode(parsedDiff, prDetails) {
         return comments;
     });
 }
-function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string[] {
+function createPrompt(file, chunk, prDetails) {
   const MAX_LENGTH = 4000;
   const prompt = `Your task is to review pull requests. Instructions:
 - Provide the response in the following JSON format: {"reviews": [{"lineNumber": <line_number>, "reviewComment": "<review comment>"}]}
@@ -136,7 +136,7 @@ ${chunk.changes
 `;
 
   // Split the prompt into chunks of 4000 characters
-  const promptChunks: string[] = [];
+  const promptChunks = [];
   for (let i = 0; i < prompt.length; i += MAX_LENGTH) {
     promptChunks.push(prompt.slice(i, i + MAX_LENGTH));
   }
