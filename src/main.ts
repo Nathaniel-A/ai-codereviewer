@@ -142,6 +142,8 @@ async function getAIResponse(prompt: string[]): Promise<Array<{
 
   try {
     for (const chunk of prompt) {
+      console.log("Processing chunk...");
+      console.log(chunk);
       const response = await openai.chat.completions.create({
         ...queryConfig,
         // return JSON if the model supports it:
