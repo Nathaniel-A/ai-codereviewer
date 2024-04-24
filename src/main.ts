@@ -127,7 +127,7 @@ async function getAIResponse(prompt: string): Promise<Array<{
   const queryConfig = {
     model: OPENAI_API_MODEL,
     temperature: 0.2,
-    max_tokens: 150,
+    max_tokens: 700,
     top_p: 1,
     frequency_penalty: 0,
     presence_penalty: 0,
@@ -142,7 +142,7 @@ async function getAIResponse(prompt: string): Promise<Array<{
         : {}),
       messages: [
         {
-          role: "system",
+          role: "user",
           content: prompt,
         },
       ],
@@ -151,7 +151,7 @@ async function getAIResponse(prompt: string): Promise<Array<{
     const res = response.choices[0].message?.content?.trim() || "{}";
     return JSON.parse(res).reviews;
   } catch (error) {
-    console.error("Error:", error);
+    console.error("NathError:", error);
     return null;
   }
 }
