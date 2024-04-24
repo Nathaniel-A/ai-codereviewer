@@ -56,6 +56,12 @@ async function getDiff(
   return response.data;
 }
 
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+      setTimeout(resolve, milliseconds);
+  });
+}
+
 async function analyzeCode(
   parsedDiff: File[],
   prDetails: PRDetails
@@ -73,6 +79,7 @@ async function analyzeCode(
           comments.push(...newComments);
         }
       }
+      await delay(20000);
     }
   }
   return comments;
