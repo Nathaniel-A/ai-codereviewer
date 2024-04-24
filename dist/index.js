@@ -106,7 +106,7 @@ function analyzeCode(parsedDiff, prDetails) {
     });
 }
 function createPrompt(file, chunk, prDetails) {
-  const MAX_LENGTH = 4000;
+  const MAX_LENGTH = 400;
   const prompt = `Your task is to review pull requests. Instructions:
 - Provide the response in the following JSON format: {"reviews": [{"lineNumber": <line_number>, "reviewComment": "<review comment>"}]}
 - Do not give positive comments or compliments.
@@ -158,12 +158,13 @@ function getAIResponse(prompt) {
             presence_penalty: 0,
         };
         try {
+	    console.log("Going to publish data to OPENAI");
 	    for (const chunk of prompt) {
                 const response = yield openai.chat.completions.create(Object.assign(Object.assign(Object.assign({}, queryConfig), (OPENAI_API_MODEL === "gpt-4-1106-preview"
                     ? { response_format: { type: "json_object" } }
                     : {})), { messages: [
                         {
-                            role: "system",
+                            role: "user",
                             content: chunk,
                         },
                     ] }));
