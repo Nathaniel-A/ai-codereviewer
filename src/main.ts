@@ -75,7 +75,6 @@ async function analyzeCode(
     if (file.to === "/dev/null") continue; // Ignore deleted files
     for (const chunk of file.chunks) {
       const prompt = createPrompt(file, chunk, prDetails);
-      await delay(30000);
       const aiResponse = await getAIResponse(prompt);
       if (aiResponse) {
         const newComments = createComment(file, chunk, aiResponse);
@@ -88,19 +87,18 @@ async function analyzeCode(
   return comments;
 }
 
-function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
-  return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>"}]}
+function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string[] {
+  const MAX_LENGTH = 4000;
+  const prompt = `Your task is to review pull requests. Instructions:
+- Provide the response in the following JSON format: {"reviews": [{"lineNumber": <line_number>, "reviewComment": "<review comment>"}]}
 - Do not give positive comments or compliments.
-- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
+- Provide comments and suggestions ONLY if there is something to improve; otherwise, "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
-- Use the given description only for the overall context and only comment the code.
+- Use the given description only for the overall context and only comment on the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
 
-Review the following code diff in the file "${
-    file.to
-  }" and take the pull request title and description into account when writing the response.
-  
+Review the following code diff in the file "${file.to}" and take the pull request title and description into account when writing the response.
+
 Pull request title: ${prDetails.title}
 Pull request description:
 
@@ -113,14 +111,23 @@ Git diff to review:
 \`\`\`diff
 ${chunk.content}
 ${chunk.changes
-  // @ts-expect-error - ln and ln2 exists where needed
+  // @ts-expect-error - ln and ln2 exist where needed
   .map((c) => `${c.ln ? c.ln : c.ln2} ${c.content}`)
   .join("\n")}
 \`\`\`
 `;
+
+  // Split the prompt into chunks of 4000 characters
+  const promptChunks: string[] = [];
+  for (let i = 0; i < prompt.length; i += MAX_LENGTH) {
+    promptChunks.push(prompt.slice(i, i + MAX_LENGTH));
+  }
+  
+  return promptChunks;
 }
 
-async function getAIResponse(prompt: string): Promise<Array<{
+
+async function getAIResponse(prompt: string[]): Promise<Array<{
   lineNumber: string;
   reviewComment: string;
 }> | null> {
@@ -134,22 +141,24 @@ async function getAIResponse(prompt: string): Promise<Array<{
   };
 
   try {
-    const response = await openai.chat.completions.create({
-      ...queryConfig,
-      // return JSON if the model supports it:
-      ...(OPENAI_API_MODEL === "gpt-4-1106-preview"
-        ? { response_format: { type: "json_object" } }
-        : {}),
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
-
-    const res = response.choices[0].message?.content?.trim() || "{}";
-    return JSON.parse(res).reviews;
+    for (const chunk of prompt) {
+      const response = await openai.chat.completions.create({
+        ...queryConfig,
+        // return JSON if the model supports it:
+        ...(OPENAI_API_MODEL === "gpt-4-1106-preview"
+          ? { response_format: { type: "json_object" } }
+          : {}),
+        messages: [
+          {
+            role: "user",
+            content: chunk,
+          },
+        ],
+      });
+      const res = response.choices[0].message?.content?.trim() || "{}";
+      return JSON.parse(res).reviews;
+      await delay(30000);
+    }
   } catch (error) {
     console.error("NathError:", error);
     return null;
