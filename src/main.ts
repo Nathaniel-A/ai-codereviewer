@@ -12,12 +12,12 @@ const ORGANIZATION: string = core.getInput("ORGANIZATION");
 
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
-
+console.log("Before OpenAi obj creation");
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,
   organization: ORGANIZATION,
 });
-
+console.log("After OpenAi obj creation");
 interface PRDetails {
   owner: string;
   repo: string;
